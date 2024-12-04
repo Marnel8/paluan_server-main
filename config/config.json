@@ -15,10 +15,11 @@
 		"dialect": "mysql"
 	},
 	"production": {
-		"username": "process.env.DB_USER",
-		"password": "process.env.DB_PASSWORD",
-		"database": "process.env.DB_NAME",
-		"host": "process.env.DB_HOST",
-		"dialect": "mysql"
+		"username": "admin",
+		"password": "paluanadmin",
+		"database": "paluantourdb",
+		"host": "paluan-tour-db.cnkk8sii8klt.ap-southeast-2.rds.amazonaws.com",
+		"dialect": "mysql",
+		"port": 3306
 	}
 }
