@@ -40,11 +40,16 @@ Object.keys(db).forEach(modelName => {
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
 
-// Add connection check
+// Add connection check and sync
 sequelize
   .authenticate()
   .then(() => {
     console.log('Database connection has been established successfully.');
+    // Sync database
+    return sequelize.sync({ alter: true });
+  })
+  .then(() => {
+    console.log('Database synchronized successfully.');
   })
   .catch(err => {
     console.error('Unable to connect to the database:', err);
