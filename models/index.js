@@ -40,19 +40,22 @@ Object.keys(db).forEach(modelName => {
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
 
-// Add connection check and sync
-sequelize
-  .authenticate()
-  .then(() => {
+// Initialize database with safer sync
+const initDB = async () => {
+  try {
+    await sequelize.authenticate();
     console.log('Database connection has been established successfully.');
-    // Force sync database to ensure clean slate
-    return sequelize.sync({ force: true });
-  })
-  .then(() => {
+    
+    // Use alter instead of force to preserve data
+    await sequelize.sync({ alter: true });
     console.log('Database synchronized successfully.');
-  })
-  .catch(err => {
-    console.error('Unable to connect to the database:', err);
-  });
+    
+    return db;
+  } catch (error) {
+    console.error('Unable to connect to the database:', error);
+    throw error;
+  }
+};
 
+db.initDB = initDB;
 module.exports = db;
