@@ -77,6 +77,7 @@ const createRating = async (req, res) => {
 			resortId,
 			rating,
 			comment,
+			guestRatingCode
 		});
 
 		return res.status(201).json({
