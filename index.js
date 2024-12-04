@@ -7,7 +7,8 @@ const cookieParser = require("cookie-parser");
 const app = express();
 const port = 4000;
 
-//middlewares
+//middlewaress
+//test
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
