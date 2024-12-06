@@ -12,6 +12,7 @@ const {
 	deleteUser,
 	changePassword,
 	updateProfile,
+	forgotPassword,
 } = require("../controllers/auth");
 const authenticateToken = require("../middleware/authMiddleware");
 
@@ -26,4 +27,5 @@ router.get("/", fetchUsers);
 router.put("/change-password", authenticateToken, changePassword);
 router.delete("/:id", deleteUser);
 router.put("/profile", authenticateToken, updateProfile);
+router.post("/forgot-password", forgotPassword);
 module.exports = router;

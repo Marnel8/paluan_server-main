@@ -4,239 +4,276 @@ var salt = bcrypt.genSaltSync(10);
 const jwt = require("jsonwebtoken");
 
 const { generateAccessToken, generateRefreshToken } = require("../utils/auth");
+const transporter = require("../config/nodeMailer");
 const login = async (req, res) => {
-	try {
-		const { username, password } = req.body;
-		const user = await User.findOne({
-			where: {
-				username,
-			},
-		});
+  try {
+    const { username, password } = req.body;
+    const user = await User.findOne({
+      where: {
+        username,
+      },
+    });
 
-		if (!user)
-			return res.status(401).send({
-				message: "Incorrect credentials",
-			});
+    if (!user)
+      return res.status(401).send({
+        message: "Incorrect credentials",
+      });
 
-		//password checking
-		const isPasswordMatch = bcrypt.compareSync(password, user.password);
-		if (!isPasswordMatch)
-			return res.status(401).send({
-				message: "Incorrect credentials",
-			});
+    //password checking
+    const isPasswordMatch = bcrypt.compareSync(password, user.password);
+    if (!isPasswordMatch)
+      return res.status(401).send({
+        message: "Incorrect credentials",
+      });
 
-		const accessToken = generateAccessToken(user);
-		const refreshToken = generateRefreshToken(user);
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
 
-		user.refreshToken = refreshToken;
-		await user.save();
+    user.refreshToken = refreshToken;
+    await user.save();
 
-		// Send refresh token as HTTP-only cookie
-		res.cookie("refreshToken", refreshToken, {
-			httpOnly: true, // Cookie is not accessible by JavaScript
-			secure: process.env.NODE_ENV === "production", // Use secure cookies in production
-			maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-			sameSite: "strict",
-		});
+    // Send refresh token as HTTP-only cookie
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true, // Cookie is not accessible by JavaScript
+      secure: process.env.NODE_ENV === "production", // Use secure cookies in production
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      sameSite: "strict",
+    });
 
-		// Return JWT in the response
-		return res.json({ accessToken, user });
-	} catch (err) {
-		console.log(err);
-		return res.sendStatus(500);
-	}
+    // Return JWT in the response
+    return res.json({ accessToken, user });
+  } catch (err) {
+    console.log(err);
+    return res.sendStatus(500);
+  }
 };
 
 const logout = async (req, res) => {
-	try {
-		// Get refresh token from cookies instead of relying only on user object
-		const refreshToken = req.cookies.refreshToken;
+  try {
+    // Get refresh token from cookies instead of relying only on user object
+    const refreshToken = req.cookies.refreshToken;
 
-		if (!refreshToken) {
-			return res.status(200).json({ message: "Already logged out" });
-		}
+    if (!refreshToken) {
+      return res.status(200).json({ message: "Already logged out" });
+    }
 
-		// Find user by refresh token if user object is not in request
-		const currentUser = req.user
-			? await User.findByPk(req.user.id)
-			: await User.findOne({ where: { refreshToken } });
+    // Find user by refresh token if user object is not in request
+    const currentUser = req.user
+      ? await User.findByPk(req.user.id)
+      : await User.findOne({ where: { refreshToken } });
 
-		if (currentUser) {
-			currentUser.refreshToken = null;
-			await currentUser.save();
-			console.log("User logged out successfully");
-		}
+    if (currentUser) {
+      currentUser.refreshToken = null;
+      await currentUser.save();
+      console.log("User logged out successfully");
+    }
 
-		res.clearCookie("refreshToken");
-		return res.sendStatus(200);
-	} catch (err) {
-		console.error("Error during logout:", err);
-		return res.status(500).json({ message: "Internal server error" });
-	}
+    res.clearCookie("refreshToken");
+    return res.sendStatus(200);
+  } catch (err) {
+    console.error("Error during logout:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
 };
 
 // Controller for creating a new user
 const createUser = async (req, res) => {
-	const { name, email, password, username, userType } = req.body;
+  const { name, email, password, username, userType } = req.body;
 
-	// Define the allowed user types
-	const allowedUserTypes = ["admin", "resortOwner", "guest"];
+  // Define the allowed user types
+  const allowedUserTypes = ["admin", "resortOwner", "guest"];
 
-	try {
-		// Check if the user already exists
-		const existingUser = await User.findOne({ where: { email } });
-		if (existingUser) {
-			return res.status(400).json({ message: "User already exists" });
-		}
+  try {
+    // Check if the user already exists
+    const existingUser = await User.findOne({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({ message: "User already exists" });
+    }
 
-		// Validate user type
-		if (userType && !allowedUserTypes.includes(userType)) {
-			return res.status(400).json({
-				message: `Invalid user type. Allowed types: ${allowedUserTypes.join(
-					", "
-				)}`,
-			});
-		}
+    // Validate user type
+    if (userType && !allowedUserTypes.includes(userType)) {
+      return res.status(400).json({
+        message: `Invalid user type. Allowed types: ${allowedUserTypes.join(
+          ", "
+        )}`,
+      });
+    }
 
-		// Hash the password
-		const saltRounds = 10; // Adjust the number of rounds as per your requirements
-		const hashedPassword = await bcrypt.hash(password, saltRounds);
+    // Hash the password
+    const saltRounds = 10; // Adjust the number of rounds as per your requirements
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-		// Create a new user with the provided or default userType
-		const newUser = await User.create({
-			name,
-			email,
-			password: hashedPassword,
-			username,
-			userType: userType || "guest", // Default to 'guest' if no userType is provided
-		});
+    // Create a new user with the provided or default userType
+    const newUser = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      username,
+      userType: userType || "guest", // Default to 'guest' if no userType is provided
+    });
 
-		// Respond with the created user (excluding password)
-		return res.status(201).json({
-			id: newUser.id,
-			name: newUser.name,
-			email: newUser.email,
-			userType: newUser.userType, // Include userType in the response
-		});
-	} catch (error) {
-		console.error("Error creating user:", error);
-		return res.status(500).json({ message: "Server error" });
-	}
+    // Respond with the created user (excluding password)
+    return res.status(201).json({
+      id: newUser.id,
+      name: newUser.name,
+      email: newUser.email,
+      userType: newUser.userType, // Include userType in the response
+    });
+  } catch (error) {
+    console.error("Error creating user:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
 };
 
 const refreshToken = (req, res) => {
-	const refreshToken = req.cookies.refreshToken; // Access the refresh token from the cookie
+  const refreshToken = req.cookies.refreshToken; // Access the refresh token from the cookie
 
-	// If no refresh token is found, send unauthorized response
-	if (!refreshToken) {
-		return res.status(401).json({ message: "Refresh token not provided" });
-	}
+  // If no refresh token is found, send unauthorized response
+  if (!refreshToken) {
+    return res.status(401).json({ message: "Refresh token not provided" });
+  }
 
-	// Verify the refresh token
-	jwt.verify(refreshToken, process.env.JWT_SECRET, (err, user) => {
-		if (err) {
-			return res.status(403).json({ message: "Invalid refresh token" }); // Forbidden if invalid
-		}
+  // Verify the refresh token
+  jwt.verify(refreshToken, process.env.JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ message: "Invalid refresh token" }); // Forbidden if invalid
+    }
 
-		// If refresh token is valid, generate a new access token
-		const newAccessToken = generateAccessToken(user);
+    // If refresh token is valid, generate a new access token
+    const newAccessToken = generateAccessToken(user);
 
-		// Send the new access token in response
-		return res.json({ accessToken: newAccessToken });
-	});
+    // Send the new access token in response
+    return res.json({ accessToken: newAccessToken });
+  });
 };
 
 const getMe = async (req, res) => {
-	const { user } = req;
+  const { user } = req;
 
-	const currentUser = await User.findByPk(user?.id);
+  const currentUser = await User.findByPk(user?.id);
 
-	return res.json(currentUser);
+  return res.json(currentUser);
 };
 
 const fetchUsers = async (req, res) => {
-	const users = await User.findAll({});
+  const users = await User.findAll({});
 
-	res.status(200).json(users);
+  res.status(200).json(users);
 };
 
 const deleteUser = async (req, res) => {
-	const { id } = req.params;
-	await User.destroy({
-		where: {
-			id,
-		},
-	});
+  const { id } = req.params;
+  await User.destroy({
+    where: {
+      id,
+    },
+  });
 
-	return res.status(200).json({ message: "User deleted successfully" });
+  return res.status(200).json({ message: "User deleted successfully" });
 };
 
 const changePassword = async (req, res) => {
-	console.log("Auth debug:", {
-		user: req.user,
-		headers: req.headers.authorization,
-	});
+  console.log("Auth debug:", {
+    user: req.user,
+    headers: req.headers.authorization,
+  });
 
-	// Check if user exists in request
-	if (!req.user) {
-		return res.status(401).json({ message: "User not authenticated" });
-	}
+  // Check if user exists in request
+  if (!req.user) {
+    return res.status(401).json({ message: "User not authenticated" });
+  }
 
-	const { oldPassword, newPassword } = req.body;
-	const { id: userId } = req.user;
+  const { oldPassword, newPassword } = req.body;
+  const { id: userId } = req.user;
 
-	try {
-		const currentUser = await User.findByPk(userId);
+  try {
+    const currentUser = await User.findByPk(userId);
 
-		if (!currentUser) {
-			return res.status(404).json({ message: "User not found" });
-		}
+    if (!currentUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-		const isPasswordMatch = bcrypt.compareSync(
-			oldPassword,
-			currentUser.password
-		);
+    const isPasswordMatch = bcrypt.compareSync(
+      oldPassword,
+      currentUser.password
+    );
 
-		if (!isPasswordMatch) {
-			return res.status(401).json({ message: "Incorrect password" });
-		}
+    if (!isPasswordMatch) {
+      return res.status(401).json({ message: "Incorrect password" });
+    }
 
-		const saltRounds = 10;
-		const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
 
-		currentUser.password = hashedPassword;
-		await currentUser.save();
+    currentUser.password = hashedPassword;
+    await currentUser.save();
 
-		return res.status(200).json({ message: "Password changed successfully" });
-	} catch (error) {
-		console.error("Error changing password:", error);
-		return res.status(500).json({ message: "Internal server error" });
-	}
+    return res.status(200).json({ message: "Password changed successfully" });
+  } catch (error) {
+    console.error("Error changing password:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
 };
 
 const updateProfile = async (req, res) => {
-	const { name, email, phone, username } = req.body;
-	const { user } = req;
+  const { name, email, phone, username } = req.body;
+  const { user } = req;
 
-	const currentUser = await User.findByPk(user.id);
+  const currentUser = await User.findByPk(user.id);
 
-	currentUser.name = name;
-	currentUser.email = email;
-	currentUser.phone = phone;
-	currentUser.username = username;
-	await currentUser.save();
+  currentUser.name = name;
+  currentUser.email = email;
+  currentUser.phone = phone;
+  currentUser.username = username;
+  await currentUser.save();
 
-	return res.status(200).json({ message: "Profile updated successfully" });
+  return res.status(200).json({ message: "Profile updated successfully" });
+};
+
+const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  const user = await User.findOne({ where: { email } });
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+
+  const newPassword = Math.random().toString(36).substring(2, 15);
+
+  const mailOptions = {
+    from: process.env.NODEMAILER_USER,
+    to: user.email,
+    subject: "Your New Password",
+    text: `Hello! Your new password is ${newPassword}`,
+  };
+
+  // Send the email
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      return console.log("Error:", error);
+    }
+    console.log("Email sent:", info.response);
+  });
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  user.password = hashedPassword;
+
+  await user.save();
+
+  return res
+    .status(200)
+    .json({ message: "Password reset successfully, check your email" });
 };
 
 module.exports = {
-	login,
-	createUser,
-	refreshToken,
-	getMe,
-	logout,
-	fetchUsers,
-	deleteUser,
-	changePassword,
-	updateProfile,
+  login,
+  createUser,
+  refreshToken,
+  getMe,
+  logout,
+  fetchUsers,
+  forgotPassword,
+  deleteUser,
+  changePassword,
+  updateProfile,
 };

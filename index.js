@@ -15,8 +15,8 @@ app.use(cookieParser());
 
 app.use(
 	cors({
+		origin: ["https://paluan-tour.vercel.app", "http://localhost:3000"],
 		credentials: true,
-		origin: ["https://paluan-tour.vercel.app"],
 	})
 );
 
