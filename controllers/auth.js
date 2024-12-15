@@ -109,7 +109,7 @@ const createUser = async (req, res) => {
       email,
       password: hashedPassword,
       username,
-      userType: userType || "guest", // Default to 'guest' if no userType is provided
+      userType: userType, // Default to 'guest' if no userType is provided
     });
 
     // Respond with the created user (excluding password)
