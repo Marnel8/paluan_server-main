@@ -7,6 +7,8 @@ const cookieParser = require("cookie-parser");
 const app = express();
 const port = 4000;
 
+require("./config/db");
+
 //middlewaress
 //test
 app.use(express.json());
