@@ -15,11 +15,11 @@
 		"dialect": "mysql"
 	},
 	"production": {
-		"username": "admin",
-		"password": "paluanadmin",
-		"database": "paluantourdb",
-		"host": "paluan-tour-db.cnkk8sii8klt.ap-southeast-2.rds.amazonaws.com",
+		"username": "paluandb_fourthwing",
+		"password": "780ffedc4599424e034244a8cc13ffc47eb19487",
+		"database": "paluandb_fourthwing",
+		"host": "sj2t3.h.filess.io",
 		"dialect": "mysql",
-		"port": 3306
+		"port": 3307
 	}
 }
