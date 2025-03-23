@@ -13,6 +13,7 @@ const addTourist = async (req, res) => {
 			barangay,
 			contactNumber,
 			visitDate,
+			outDate,
 			resortId,
 		} = req.body;
 
@@ -23,6 +24,7 @@ const addTourist = async (req, res) => {
 			gender,
 			contactNumber,
 			visitDate,
+			outDate,
 			resortId,
 			barangay,
 			region,
@@ -97,6 +99,7 @@ const updateTourist = async (req, res) => {
 			barangay,
 			contactNumber,
 			visitDate,
+			outDate,
 			resortId,
 		} = req.body;
 
@@ -117,6 +120,7 @@ const updateTourist = async (req, res) => {
 			barangay,
 			contactNumber,
 			visitDate,
+			outDate,
 			resortId,
 		});
 
@@ -158,10 +162,39 @@ const deleteTourist = async (req, res) => {
 	}
 };
 
+const checkoutTourist = async (req, res) => {
+	try {
+		const { id } = req.params;
+
+		const tourist = await Tourist.findByPk(id);
+		if (!tourist) {
+			return res.status(404).json({
+				message: "Tourist not found",
+			});
+		}
+
+		await tourist.update({
+			outDate: new Date(),
+		});
+
+		return res.status(200).json({
+			message: "Tourist checked out successfully!",
+			tourist,
+		});
+	} catch (error) {
+		console.error("Error checking out tourist:", error);
+		return res.status(500).json({
+			message: "Error checking out tourist",
+			error: error.message,
+		});
+	}
+};
+
 module.exports = {
 	addTourist,
 	getTouristList,
 	getTouristByResortId,
 	updateTourist,
 	deleteTourist,
+	checkoutTourist,
 };

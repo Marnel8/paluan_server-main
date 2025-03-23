@@ -12,5 +12,6 @@ router.get(
 	"/tourist-by-resort/:resortId",
 	touristController.getTouristByResortId
 );
+router.put("/checkout-tourist/:id", touristController.checkoutTourist);
 
 module.exports = router;

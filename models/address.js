@@ -19,8 +19,8 @@ module.exports = (sequelize, DataTypes) => {
 				allowNull: false,
 			},
 			street: {
-				type: DataTypes.STRING, // ENUM type
-				allowNull: false,
+				type: DataTypes.STRING,
+				allowNull: true,
 			},
 			region: {
 				type: DataTypes.INTEGER, // ENUM type

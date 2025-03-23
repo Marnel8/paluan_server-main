@@ -61,6 +61,14 @@ module.exports = (sequelize, DataTypes) => {
 				defaultValue: "beach",
 			},
 			guestRatingCode: DataTypes.STRING, // code for rating the resort
+			longitude: {
+				type: DataTypes.FLOAT,
+				allowNull: true,
+			},
+			latitude: {
+				type: DataTypes.FLOAT,
+				allowNull: true,
+			},
 		},
 		{
 			sequelize,
