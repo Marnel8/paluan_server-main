@@ -54,7 +54,7 @@ const initDB = async () => {
 		console.log("Database connection has been established successfully.");
 
 		// Use alter instead of force to preserve data
-		await sequelize.sync({ alter: true });
+		await sequelize.sync({ alter: false });
 		console.log("Database synchronized successfully.");
 
 		return db;
