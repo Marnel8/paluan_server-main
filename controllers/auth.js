@@ -231,38 +231,64 @@ const updateProfile = async (req, res) => {
 };
 
 const forgotPassword = async (req, res) => {
-  const { email } = req.body;
+  try {
+    const { email } = req.body;
 
-  const user = await User.findOne({ where: { email } });
-  if (!user) {
-    return res.status(404).json({ message: "User not found" });
-  }
-
-  const newPassword = Math.random().toString(36).substring(2, 15);
-
-  const mailOptions = {
-    from: process.env.NODEMAILER_USER,
-    to: user.email,
-    subject: "Your New Password",
-    text: `Hello! Your new password is ${newPassword}`,
-  };
-
-  // Send the email
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      return console.log("Error:", error);
+    // Validate email input
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
     }
-    console.log("Email sent:", info.response);
-  });
 
-  const hashedPassword = await bcrypt.hash(newPassword, 10);
-  user.password = hashedPassword;
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-  await user.save();
+    const newPassword = Math.random().toString(36).substring(2, 15);
 
-  return res
-    .status(200)
-    .json({ message: "Password reset successfully, check your email" });
+    const mailOptions = {
+      from: process.env.NODEMAILER_USER,
+      to: user.email,
+      subject: "Your New Password - Paluan Tour",
+      text: `Hello ${user.name || 'User'}!\n\nYour new password is: ${newPassword}\n\nPlease log in with this password and change it to something more secure.\n\nBest regards,\nPaluan Tour Team`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Password Reset - Paluan Tour</h2>
+          <p>Hello ${user.name || 'User'}!</p>
+          <p>Your new password is: <strong style="background-color: #f0f0f0; padding: 5px 10px; border-radius: 3px;">${newPassword}</strong></p>
+          <p>Please log in with this password and change it to something more secure.</p>
+          <p>Best regards,<br>Paluan Tour Team</p>
+        </div>
+      `
+    };
+
+    // Send the email with proper error handling
+    await new Promise((resolve, reject) => {
+      transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+          console.error("Email sending error:", error);
+          reject(error);
+        } else {
+          console.log("Email sent successfully:", info.response);
+          resolve(info);
+        }
+      });
+    });
+
+    // Only update password if email was sent successfully
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    await user.save();
+
+    return res
+      .status(200)
+      .json({ message: "Password reset successfully, check your email" });
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    return res.status(500).json({ 
+      message: "Failed to send password reset email. Please try again later." 
+    });
+  }
 };
 
 module.exports = {
