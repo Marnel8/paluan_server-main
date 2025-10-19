@@ -16,6 +16,8 @@ const createTransporter = () => {
         connectionTimeout: 60000, // 60 seconds
         greetingTimeout: 30000, // 30 seconds
         socketTimeout: 60000, // 60 seconds
+        requireTLS: true,
+        family: 4, // force IPv4 in environments where IPv6 DNS causes timeouts
         // Retry settings
         pool: true,
         maxConnections: 5,
@@ -25,7 +27,10 @@ const createTransporter = () => {
         // TLS settings
         tls: {
             rejectUnauthorized: false
-        }
+        },
+        // Debugging (safe to enable in production temporarily)
+        logger: true,
+        debug: true
     };
 
     // Alternative SMTP configuration for production environments
@@ -40,6 +45,8 @@ const createTransporter = () => {
         connectionTimeout: 60000,
         greetingTimeout: 30000,
         socketTimeout: 60000,
+        requireTLS: true,
+        family: 4,
         pool: true,
         maxConnections: 5,
         maxMessages: 100,
@@ -47,7 +54,9 @@ const createTransporter = () => {
         rateLimit: 5,
         tls: {
             rejectUnauthorized: false
-        }
+        },
+        logger: true,
+        debug: true
     };
 
     // Use alternative config if SMTP_HOST is set, otherwise use Gmail
