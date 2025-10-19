@@ -4,7 +4,7 @@ var salt = bcrypt.genSaltSync(10);
 const jwt = require("jsonwebtoken");
 
 const { generateAccessToken, generateRefreshToken } = require("../utils/auth");
-const transporter = require("../config/nodeMailer");
+const { sendMailWithRetry } = require("../config/nodeMailer");
 const login = async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -262,18 +262,8 @@ const forgotPassword = async (req, res) => {
       `
     };
 
-    // Send the email with proper error handling
-    await new Promise((resolve, reject) => {
-      transporter.sendMail(mailOptions, (error, info) => {
-        if (error) {
-          console.error("Email sending error:", error);
-          reject(error);
-        } else {
-          console.log("Email sent successfully:", info.response);
-          resolve(info);
-        }
-      });
-    });
+    // Send the email with enhanced error handling and retry logic
+    await sendMailWithRetry(mailOptions);
 
     // Only update password if email was sent successfully
     const hashedPassword = await bcrypt.hash(newPassword, 10);

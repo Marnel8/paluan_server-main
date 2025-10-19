@@ -7,7 +7,7 @@ const {
 	Sequelize,
 } = require("../models");
 const { generateUsername, generatePassword } = require("../utils/auth");
-const transporter = require("../config/nodeMailer");
+const { sendMailWithRetry } = require("../config/nodeMailer");
 const { where } = require("sequelize");
 var bcrypt = require("bcryptjs");
 
@@ -93,12 +93,13 @@ const addResortAndOwner = async (req, res) => {
 			text: `Hello! Here are your login details:\n\nUsername: ${username}\nPassword: ${password}\n\nPlease keep these credentials safe.\n\nPlease login using this link: https://paluan-tour.vercel.app/sign-in`,
 		};
 
-		transporter.sendMail(mailOptions, (error, info) => {
-			if (error) {
-				return console.log("Error:", error);
-			}
-			console.log("Email sent:", info.response);
-		});
+		// Send email with enhanced error handling and retry logic
+		try {
+			await sendMailWithRetry(mailOptions);
+		} catch (error) {
+			console.error("Failed to send email to resort owner:", error);
+			// Don't fail the entire operation if email fails
+		}
 		return res.status(201).json({ resort, owner: user });
 	} catch (error) {
 		await t.rollback();
