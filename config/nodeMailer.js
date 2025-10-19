@@ -53,7 +53,7 @@ const createTransporter = () => {
     // Use alternative config if SMTP_HOST is set, otherwise use Gmail
     const config = process.env.SMTP_HOST ? alternativeConfig : gmailConfig;
     
-    return nodemailer.createTransporter(config);
+    return nodemailer.createTransport(config);
 };
 
 const transporter = createTransporter();
@@ -99,7 +99,7 @@ const createFallbackTransporter = () => {
         socketTimeout: 30000,
     };
     
-    return nodemailer.createTransporter(fallbackConfig);
+    return nodemailer.createTransport(fallbackConfig);
 };
 
 // Enhanced sendMail function with retry logic and fallback
