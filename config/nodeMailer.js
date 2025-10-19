@@ -1,4 +1,5 @@
 const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 
 // Create a transporter with enhanced configuration for production
 const createTransporter = () => {
@@ -111,7 +112,7 @@ const createFallbackTransporter = () => {
     return nodemailer.createTransport(fallbackConfig);
 };
 
-// Enhanced sendMail function with retry logic and fallback
+// Enhanced sendMail function with retry logic and HTTP API fallback (Resend)
 const sendMailWithRetry = async (mailOptions, maxRetries = 3) => {
     let currentTransporter = transporter;
     
@@ -126,6 +127,28 @@ const sendMailWithRetry = async (mailOptions, maxRetries = 3) => {
             
             // If this is the last attempt and we haven't tried fallback yet, try fallback
             if (attempt === maxRetries && currentTransporter === transporter) {
+                const useResend = !!process.env.RESEND_API_KEY;
+                if (useResend) {
+                    console.log("🔄 Switching to Resend HTTP API fallback...");
+                    try {
+                        const resend = new Resend(process.env.RESEND_API_KEY);
+                        const fromAddress = process.env.RESEND_FROM || mailOptions.from;
+                        const { data, error } = await resend.emails.send({
+                            from: fromAddress,
+                            to: Array.isArray(mailOptions.to) ? mailOptions.to : [String(mailOptions.to)],
+                            subject: mailOptions.subject,
+                            text: mailOptions.text,
+                            html: mailOptions.html,
+                        });
+                        if (error) throw error;
+                        console.log("✅ Email sent via Resend:", data?.id);
+                        return { messageId: `resend-${data?.id}` };
+                    } catch (rsErr) {
+                        console.error("❌ Resend fallback failed:", rsErr.message || rsErr);
+                        // fall through to try SMTP fallback pool
+                    }
+                }
+
                 console.log("🔄 Trying fallback SMTP configuration...");
                 currentTransporter = createFallbackTransporter();
                 attempt = 0; // Reset attempt counter for fallback
